@@ -23,7 +23,13 @@ customer churns, and refund/goodwill decisions are made ad-hoc and inconsistentl
 
 ## 2. The product
 
-When a booking is at risk, the system:
+**It is proactive, not just reactive.** A live **Risk Radar** scores every booking's
+*backup depth* — how many qualified, available pros could cover it — and flags
+**critical gaps before any cancellation happens** (e.g. a Bridal Makeup booking with
+zero free specialists = ₹5,000 of revenue one cancellation away from being lost).
+That is what makes it *self-healing*, not just recovery.
+
+When a booking does go at risk, the system:
 
 1. **Detects** the gap (booking → `at_risk`).
 2. **Recovers** — ranks every available professional by **skill + proximity
@@ -45,10 +51,10 @@ require a human** — the single most important judgment in this domain.
 | Lemma primitive | Used for |
 |---|---|
 | **Tables** (4) | `bookings`, `beauticians`, `recovery_log` (audit), `comp_ledger` (the money gate) — typed, with foreign keys & enums |
-| **Functions** (8, Python) | `match_pro` (ranking engine), `recommend_comp` (policy engine), `apply_reassignment`, `settle_comp`, `escalate_booking`, `run_recovery` (one-click orchestrator), `decide_comp`, `reset_demo` |
+| **Functions** (9, Python) | `risk_scan` (proactive radar), `match_pro` (ranking engine), `recommend_comp` (policy engine), `apply_reassignment`, `settle_comp`, `escalate_booking`, `run_recovery` (one-click orchestrator), `decide_comp`, `reset_demo` |
 | **Workflow** (`recover-booking`) | 11-node graph: `match → DECISION → reassign → recommend → DECISION → ` **`FORM (human approval)`** ` → settle / escalate`. JMESPath routing, native human-in-the-loop approval form |
 | **Agent** (`ops-agent`) | Conversational operations assistant — answers questions over the data *and* triggers recovery / applies approved comps, with scoped grants |
-| **App** (`ops-board`) | Live operator dashboard: KPIs, bookings board, **approval queue**, recovery timeline — deployed at `https://ops-board.apps.lemma.work` |
+| **App** (`ops-board`) | Live operations command center: **impact hero** (coverage %, ₹ revenue shielded, critical gaps, comp issued), **Risk Radar**, **approval queue**, recovery timeline, and a one-click **"Simulate the full day"** — deployed at `https://ops-board.apps.lemma.work` |
 | **Files** | `comp-policy.md` — the human-readable source of truth the `recommend_comp` function enforces |
 
 Two front doors over the **same** logic: a visual **operator App** and a
