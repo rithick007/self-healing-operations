@@ -13,6 +13,8 @@
       "permission_ids": ["datastore.table.read", "datastore.record.read", "datastore.record.write"] },
     { "resource_type": "datastore_table", "resource_name": "recovery_log",
       "permission_ids": ["datastore.table.read", "datastore.record.read", "datastore.record.write"] },
+    { "resource_type": "function", "resource_name": "risk_scan",
+      "permission_ids": ["function.read", "function.execute"] },
     { "resource_type": "function", "resource_name": "run_recovery",
       "permission_ids": ["function.read", "function.execute"] },
     { "resource_type": "function", "resource_name": "decide_comp",
