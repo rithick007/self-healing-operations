@@ -1,0 +1,20 @@
+{
+  // The money gate. The agent RECOMMENDS a comp (status=pending); a human
+  // APPROVES or REJECTS it before any goodwill spend is issued.
+  "name": "comp_ledger",
+  "primary_key_column": "id",
+  "enable_rls": false,
+  "visibility": "POD",
+  "columns": [
+    { "name": "booking_id", "type": "UUID", "required": true, "foreign_key": { "references": "bookings.id" } },
+    { "name": "type", "type": "ENUM", "required": true, "default": "none",
+      "options": ["discount", "refund", "credit", "free_addon", "none"] },
+    { "name": "amount", "type": "FLOAT", "default": 0 },
+    { "name": "reason", "type": "TEXT", "max_length": 320 },
+    { "name": "recommended_by", "type": "TEXT", "max_length": 80 }, // agent name
+    { "name": "status", "type": "ENUM", "required": true, "default": "pending",
+      "options": ["pending", "approved", "rejected", "issued"] },
+    { "name": "decided_by", "type": "TEXT", "max_length": 80 }      // human operator
+  ],
+  "config": {}
+}

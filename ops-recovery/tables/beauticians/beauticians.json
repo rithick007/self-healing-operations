@@ -1,0 +1,23 @@
+{
+  // Service professionals (the "pros") who fulfil at-home bookings.
+  "name": "beauticians",
+  "primary_key_column": "id",
+  "enable_rls": false,          // shared team operations data
+  "visibility": "POD",
+  "columns": [
+    { "name": "name", "type": "TEXT", "required": true, "max_length": 120 },
+    { "name": "phone", "type": "TEXT", "max_length": 32 },
+    { "name": "skills", "type": "JSON" },                 // array, e.g. ["Haircut","Facial"]
+    { "name": "city", "type": "TEXT", "max_length": 80 },
+    { "name": "area", "type": "TEXT", "max_length": 80 }, // locality, used for proximity
+    { "name": "lat", "type": "FLOAT" },
+    { "name": "lng", "type": "FLOAT" },
+    { "name": "rating", "type": "FLOAT", "default": 4.5 },
+    { "name": "is_available", "type": "BOOLEAN", "default": true },
+    { "name": "jobs_today", "type": "INTEGER", "default": 0 },
+    { "name": "max_jobs_per_day", "type": "INTEGER", "default": 6 },
+    { "name": "status", "type": "ENUM", "required": true, "default": "active",
+      "options": ["active", "off", "busy"] }
+  ],
+  "config": {}
+}

@@ -1,0 +1,18 @@
+{
+  // Append-only audit trail of every recovery action taken on a booking.
+  // This is the "show your work" evidence that wins execution-quality points.
+  "name": "recovery_log",
+  "primary_key_column": "id",
+  "enable_rls": false,
+  "visibility": "POD",
+  "columns": [
+    { "name": "booking_id", "type": "UUID", "required": true, "foreign_key": { "references": "bookings.id" } },
+    { "name": "event", "type": "ENUM", "required": true,
+      "options": ["detected", "matched", "reassigned", "customer_notified", "comp_recommended", "comp_approved", "comp_rejected", "escalated", "resolved", "failed"] },
+    { "name": "actor", "type": "ENUM", "required": true, "default": "agent",
+      "options": ["agent", "human", "system"] },
+    { "name": "detail", "type": "TEXT", "max_length": 480 }, // human-readable one-liner
+    { "name": "payload", "type": "JSON" }                    // structured context
+  ],
+  "config": {}
+}

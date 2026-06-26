@@ -1,0 +1,27 @@
+{
+  // Customer appointments. A cancellation flips status -> at_risk, which is the
+  // event the recovery workflow listens for.
+  "name": "bookings",
+  "primary_key_column": "id",
+  "enable_rls": false,
+  "visibility": "POD",
+  "columns": [
+    { "name": "customer_name", "type": "TEXT", "required": true, "max_length": 120 },
+    { "name": "customer_phone", "type": "TEXT", "required": true, "max_length": 32 }, // demo: Telegram chat id
+    { "name": "service", "type": "TEXT", "required": true, "max_length": 120 },
+    { "name": "skill_required", "type": "TEXT", "required": true, "max_length": 80 }, // matches a beauticians.skills entry
+    { "name": "city", "type": "TEXT", "max_length": 80 },
+    { "name": "area", "type": "TEXT", "max_length": 80 },
+    { "name": "lat", "type": "FLOAT" },
+    { "name": "lng", "type": "FLOAT" },
+    { "name": "scheduled_at", "type": "DATETIME", "required": true },
+    { "name": "duration_min", "type": "INTEGER", "default": 60 },
+    { "name": "price", "type": "FLOAT" },
+    { "name": "original_pro_id", "type": "UUID", "foreign_key": { "references": "beauticians.id" } },
+    { "name": "assigned_pro_id", "type": "UUID", "foreign_key": { "references": "beauticians.id" } },
+    { "name": "status", "type": "ENUM", "required": true, "default": "scheduled",
+      "options": ["scheduled", "at_risk", "recovering", "reassigned", "escalated", "completed", "cancelled"] },
+    { "name": "notes", "type": "TEXT", "max_length": 480 }
+  ],
+  "config": {}
+}
