@@ -1,0 +1,13 @@
+{
+  "name": "settle_comp",
+  "description": "Persist the final compensation decision to comp_ledger (issued/rejected/none) and write the audit trail. Called after human approval.",
+  "type": "API",
+  "visibility": "POD",
+  "code": { "$file": "code.py" },
+  "permissions": { "grants": [
+    { "resource_type": "datastore_table", "resource_name": "comp_ledger",
+      "permission_ids": ["datastore.table.read", "datastore.record.write"] },
+    { "resource_type": "datastore_table", "resource_name": "recovery_log",
+      "permission_ids": ["datastore.table.read", "datastore.record.write"] }
+  ] }
+}

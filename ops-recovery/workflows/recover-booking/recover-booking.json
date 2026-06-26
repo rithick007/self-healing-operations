@@ -1,22 +1,124 @@
 {
   "name": "recover-booking",
-  "description": "TODO: what this workflow orchestrates.",
-  "start": { "type": "MANUAL" },   // MANUAL | SCHEDULED | DATASTORE_EVENT | EVENT
+  "description": "Self-healing recovery for an at-risk booking: match a replacement pro, reassign + notify the customer, recommend a comp, and gate any goodwill spend behind human approval. No match -> escalate with a refund queued.",
+  "start": { "type": "MANUAL" },
   "nodes": [
-    // Entry FORM collects the run input. Node types: FORM AGENT FUNCTION DECISION LOOP WAIT_UNTIL END
-    { "id": "intake", "type": "FORM", "label": "Intake",
+    {
+      "id": "intake", "type": "FORM", "label": "At-risk booking",
       "config": { "input_schema": {
         "type": "object",
-        "properties": { "note": { "type": "string" } },
-        "required": ["note"] } } },
-    // Example next step (uncomment + create the agent, then wire an edge to it):
-    // { "id": "process", "type": "AGENT", "label": "Process",
-    //   "config": { "agent_name": "some-agent",
-    //     "input_mapping": { "note": { "type": "expression", "value": "intake.note" } } } },
-    { "id": "end", "type": "END", "label": "Done" }
+        "properties": { "booking_id": { "type": "string", "title": "Booking ID" } },
+        "required": ["booking_id"]
+      } }
+    },
+    {
+      "id": "match", "type": "FUNCTION", "label": "Find replacement",
+      "config": {
+        "function_name": "match_pro",
+        "input_mapping": {
+          "booking_id": { "type": "expression", "value": "intake.booking_id" }
+        }
+      }
+    },
+    {
+      "id": "route", "type": "DECISION", "label": "Replacement found?",
+      "config": { "rules": [
+        { "condition": "match.matched == `true`",  "next_node_id": "reassign" },
+        { "condition": "match.matched == `false`", "next_node_id": "escalate" }
+      ] }
+    },
+    {
+      "id": "reassign", "type": "FUNCTION", "label": "Reassign + notify",
+      "config": {
+        "function_name": "apply_reassignment",
+        "input_mapping": {
+          "booking_id": { "type": "expression", "value": "intake.booking_id" },
+          "pro_id":     { "type": "expression", "value": "match.best.pro_id" },
+          "pro_name":   { "type": "expression", "value": "match.best.pro_name" },
+          "eta_minutes":{ "type": "expression", "value": "match.best.eta_minutes" }
+        }
+      }
+    },
+    {
+      "id": "comp", "type": "FUNCTION", "label": "Recommend comp",
+      "config": {
+        "function_name": "recommend_comp",
+        "input_mapping": {
+          "booking_id":  { "type": "expression", "value": "intake.booking_id" },
+          "recovered":   { "type": "literal", "value": true },
+          "eta_minutes": { "type": "expression", "value": "match.best.eta_minutes" }
+        }
+      }
+    },
+    {
+      "id": "gate", "type": "DECISION", "label": "Needs approval?",
+      "config": { "rules": [
+        { "condition": "comp.requires_approval == `true`",  "next_node_id": "approve" },
+        { "condition": "comp.requires_approval == `false`", "next_node_id": "settle_auto" }
+      ] }
+    },
+    {
+      "id": "approve", "type": "FORM", "label": "Approve compensation",
+      "config": { "input_schema": {
+        "type": "object",
+        "properties": {
+          "approved": { "type": "boolean", "title": "Approve the recommended compensation?" }
+        },
+        "required": ["approved"]
+      } }
+    },
+    {
+      "id": "settle", "type": "FUNCTION", "label": "Settle comp",
+      "config": {
+        "function_name": "settle_comp",
+        "input_mapping": {
+          "booking_id": { "type": "expression", "value": "intake.booking_id" },
+          "approved":   { "type": "expression", "value": "approve.approved" },
+          "type":       { "type": "expression", "value": "comp.type" },
+          "amount":     { "type": "expression", "value": "comp.amount" },
+          "reason":     { "type": "expression", "value": "comp.reason" },
+          "decided_by": { "type": "literal", "value": "operator" }
+        }
+      }
+    },
+    {
+      "id": "settle_auto", "type": "FUNCTION", "label": "No comp needed",
+      "config": {
+        "function_name": "settle_comp",
+        "input_mapping": {
+          "booking_id": { "type": "expression", "value": "intake.booking_id" },
+          "approved":   { "type": "literal", "value": true },
+          "type":       { "type": "literal", "value": "none" },
+          "amount":     { "type": "literal", "value": 0 },
+          "decided_by": { "type": "literal", "value": "auto" }
+        }
+      }
+    },
+    {
+      "id": "escalate", "type": "FUNCTION", "label": "Escalate (no match)",
+      "config": {
+        "function_name": "escalate_booking",
+        "input_mapping": {
+          "booking_id": { "type": "expression", "value": "intake.booking_id" },
+          "reason":     { "type": "expression", "value": "match.reason" }
+        }
+      }
+    },
+    { "id": "done", "type": "END", "label": "Done" }
   ],
   "edges": [
-    { "id": "e1", "source": "intake", "target": "end" }
+    { "id": "e1",  "source": "intake",      "target": "match" },
+    { "id": "e2",  "source": "match",       "target": "route" },
+    { "id": "e3",  "source": "route",       "target": "reassign" },
+    { "id": "e4",  "source": "route",       "target": "escalate" },
+    { "id": "e5",  "source": "reassign",    "target": "comp" },
+    { "id": "e6",  "source": "comp",        "target": "gate" },
+    { "id": "e7",  "source": "gate",        "target": "approve" },
+    { "id": "e8",  "source": "gate",        "target": "settle_auto" },
+    { "id": "e9",  "source": "approve",     "target": "settle" },
+    { "id": "e10", "source": "settle",      "target": "done" },
+    { "id": "e11", "source": "settle_auto", "target": "done" },
+    { "id": "e12", "source": "escalate",    "target": "done" }
   ],
   "visibility": "POD"
 }

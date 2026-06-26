@@ -1,0 +1,17 @@
+{
+  "name": "reset_demo",
+  "description": "Reset the demo to a clean state: truncate bookings/recovery_log/comp_ledger/beauticians and re-seed the Bangalore dataset.",
+  "type": "JOB",
+  "visibility": "POD",
+  "code": { "$file": "code.py" },
+  "permissions": { "grants": [
+    { "resource_type": "datastore_table", "resource_name": "bookings",
+      "permission_ids": ["datastore.table.read", "datastore.record.read", "datastore.record.write"] },
+    { "resource_type": "datastore_table", "resource_name": "beauticians",
+      "permission_ids": ["datastore.table.read", "datastore.record.read", "datastore.record.write"] },
+    { "resource_type": "datastore_table", "resource_name": "recovery_log",
+      "permission_ids": ["datastore.table.read", "datastore.record.read", "datastore.record.write"] },
+    { "resource_type": "datastore_table", "resource_name": "comp_ledger",
+      "permission_ids": ["datastore.table.read", "datastore.record.read", "datastore.record.write"] }
+  ] }
+}
