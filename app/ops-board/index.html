@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Self-Healing Operations — YesMadam</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #f7f5fa; --card: #ffffff; --ink: #1a1622; --muted: #756b82; --line: #ece7f1;
+        --brand: #e6007e; --brand-soft: #fde6f2; --good: #1e9e6a; --good-soft: #e2f6ed;
+        --warn: #c98a00; --warn-soft: #fbf2da; --bad: #d23b3b; --bad-soft: #fbe6e6;
+        --blue: #3b6ea5; --blue-soft: #e7f0f9; --chip: #f3eff8;
+        --sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --mono: ui-monospace, "SF Mono", Menlo, monospace;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 14px; line-height: 1.5; }
+      .wrap { max-width: 1180px; margin: 0 auto; padding: clamp(1rem, 3vw, 2rem); }
+      .top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+      .brand { display: flex; align-items: center; gap: .7rem; }
+      .logo { width: 38px; height: 38px; border-radius: 11px; background: var(--brand); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 1.1rem; }
+      .eyebrow { font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: var(--brand); font-weight: 700; }
+      h1 { font-size: 1.35rem; font-weight: 700; margin: 0; letter-spacing: -.01em; }
+      .pill { display: inline-flex; align-items: center; gap: .45rem; font-size: .78rem; color: var(--muted); background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: .4rem .8rem; }
+      .pip { width: 8px; height: 8px; border-radius: 50%; background: var(--good); animation: pulse 2.2s infinite; }
+      @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(30,158,106,.5); } 70% { box-shadow: 0 0 0 7px rgba(30,158,106,0); } 100% { box-shadow: 0 0 0 0 rgba(30,158,106,0); } }
+      button { font: inherit; cursor: pointer; }
+      .btn { border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 9px; padding: .45rem .8rem; font-weight: 600; font-size: .82rem; transition: .15s; }
+      .btn:hover { border-color: var(--brand); color: var(--brand); }
+      .btn.brand { background: var(--brand); color: #fff; border-color: var(--brand); }
+      .btn.brand:hover { filter: brightness(1.08); color: #fff; }
+      .btn.good { background: var(--good); color: #fff; border-color: var(--good); }
+      .btn.bad { background: var(--card); color: var(--bad); border-color: var(--bad-soft); }
+      .btn.bad:hover { background: var(--bad); color: #fff; }
+      .btn:disabled { opacity: .5; cursor: default; }
+      .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .8rem; margin: 1.4rem 0; }
+      .stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: .9rem 1rem; }
+      .stat .n { font-size: 1.7rem; font-weight: 800; letter-spacing: -.02em; }
+      .stat .l { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-top: .3rem; }
+      .stat.alert .n { color: var(--warn); } .stat.brand .n { color: var(--brand); }
+      .cols { display: grid; grid-template-columns: 1.25fr 1fr; gap: 1rem; align-items: start; }
+      @media (max-width: 880px) { .cols { grid-template-columns: 1fr; } }
+      .panel { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 1.1rem 1.2rem; margin-bottom: 1rem; }
+      .panel h2 { font-size: .95rem; margin: 0 0 .15rem; display: flex; align-items: center; gap: .5rem; }
+      .panel .cap { color: var(--muted); font-size: .78rem; margin: 0 0 .9rem; }
+      .count { background: var(--chip); color: var(--muted); font-size: .72rem; font-weight: 700; padding: .1rem .5rem; border-radius: 999px; }
+      .bk { display: flex; align-items: center; gap: .8rem; padding: .7rem 0; border-top: 1px solid var(--line); }
+      .bk:first-of-type { border-top: none; }
+      .bk .info { flex: 1; min-width: 0; }
+      .bk .who { font-weight: 700; }
+      .bk .meta { color: var(--muted); font-size: .78rem; margin-top: .1rem; }
+      .badge { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; padding: .2rem .5rem; border-radius: 999px; white-space: nowrap; }
+      .b-scheduled { background: var(--chip); color: var(--muted); }
+      .b-at_risk { background: var(--warn-soft); color: var(--warn); }
+      .b-reassigned { background: var(--good-soft); color: var(--good); }
+      .b-escalated { background: var(--bad-soft); color: var(--bad); }
+      .b-completed, .b-cancelled { background: var(--chip); color: var(--muted); }
+      .appr { border: 1px solid var(--warn-soft); background: var(--warn-soft); border-radius: 12px; padding: .8rem .9rem; margin-bottom: .7rem; }
+      .appr .h { display: flex; justify-content: space-between; gap: .5rem; align-items: baseline; }
+      .appr .amt { font-weight: 800; font-size: 1.15rem; }
+      .appr .rsn { color: #7a6020; font-size: .8rem; margin: .35rem 0 .7rem; }
+      .appr .acts { display: flex; gap: .5rem; }
+      .empty { color: var(--muted); font-size: .85rem; padding: .6rem 0; }
+      .tl { position: relative; padding-left: 1.1rem; }
+      .tl .ev { position: relative; padding: .5rem 0; border-left: 2px solid var(--line); padding-left: 1rem; margin-left: .2rem; }
+      .tl .ev::before { content: ""; position: absolute; left: -5px; top: .8rem; width: 8px; height: 8px; border-radius: 50%; background: var(--brand); }
+      .tl .ev .e { font-weight: 700; font-size: .78rem; }
+      .tl .ev .d { color: var(--muted); font-size: .78rem; }
+      .tl .ev .t { color: var(--muted); font-size: .68rem; margin-top: .1rem; }
+      .center { min-height: 80dvh; display: grid; place-items: center; text-align: center; }
+      .toast { position: fixed; bottom: 1.2rem; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: .6rem 1.1rem; border-radius: 10px; font-size: .85rem; opacity: 0; transition: .25s; pointer-events: none; }
+      .toast.show { opacity: 1; }
+      .spin { display: inline-block; width: 13px; height: 13px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: rot .7s linear infinite; vertical-align: -2px; }
+      @keyframes rot { to { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body>
+    <div id="app"><div class="center"><p>Loading operations board…</p></div></div>
+    <div class="toast" id="toast"></div>
+    <script>
+      (function () {
+        var cfg = window.__LEMMA_CONFIG__ || {};
+        var base = (cfg.apiUrl || window.location.origin).replace(/\/$/, "");
+        var s = document.createElement("script");
+        s.src = base + "/public/sdk/lemma-client.js";
+        s.onload = boot;
+        s.onerror = function () { fatal("Couldn't load the Lemma SDK from " + s.src); };
+        document.head.appendChild(s);
+      })();
+
+      var client, STATE = {};
+      function $(id) { return document.getElementById(id); }
+      function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+      function listOf(r) { return (r && (r.items || r.data)) || (Array.isArray(r) ? r : []); }
+      function money(n) { return "₹" + Number(n || 0).toLocaleString("en-IN"); }
+      function fatal(m) { $("app").innerHTML = '<div class="center"><div><h1>⚠ Error</h1><p>' + esc(m) + "</p></div></div>"; }
+      function toast(m) { var t = $("toast"); t.textContent = m; t.classList.add("show"); setTimeout(function () { t.classList.remove("show"); }, 2200); }
+      function ago(iso) {
+        if (!iso) return ""; var s = (Date.now() - new Date(iso).getTime()) / 1000;
+        if (s < 60) return "just now"; if (s < 3600) return Math.floor(s / 60) + "m ago";
+        if (s < 86400) return Math.floor(s / 3600) + "h ago"; return Math.floor(s / 86400) + "d ago";
+      }
+
+      async function boot() {
+        try {
+          client = new window.LemmaClient.LemmaClient();
+          var auth = await client.initialize();
+          if (auth.status !== "authenticated") return signIn();
+          STATE.user = auth.user;
+          await refresh();
+        } catch (e) { fatal((e && e.message) || "Something went wrong."); }
+      }
+      function signIn() {
+        $("app").innerHTML = '<div class="center"><div><div class="eyebrow">YesMadam Ops</div><h1>Self-Healing Operations</h1><p style="color:var(--muted)">Sign in to open the board.</p><button class="btn brand" id="si" style="margin-top:1rem">Sign in</button></div></div>';
+        $("si").onclick = function () { client.auth.redirectToAuth(); };
+      }
+
+      async function refresh() {
+        var r = await Promise.all([
+          client.records.list("bookings", { limit: 100 }),
+          client.records.list("beauticians", { limit: 100 }),
+          client.records.list("comp_ledger", { limit: 100 }),
+          client.records.list("recovery_log", { limit: 100 }),
+        ]);
+        STATE.bookings = listOf(r[0]);
+        STATE.pros = listOf(r[1]);
+        STATE.comps = listOf(r[2]);
+        STATE.logs = listOf(r[3]);
+        render();
+      }
+
+      function proName(id) { var p = (STATE.pros || []).find(function (x) { return x.id === id; }); return p ? p.name : "—"; }
+      function bk(id) { return (STATE.bookings || []).find(function (x) { return x.id === id; }); }
+
+      function render() {
+        var b = STATE.bookings || [], comps = STATE.comps || [], logs = STATE.logs || [];
+        var pending = comps.filter(function (c) { return c.status === "pending"; });
+        var issued = comps.filter(function (c) { return c.status === "issued"; });
+        var issuedSum = issued.reduce(function (a, c) { return a + Number(c.amount || 0); }, 0);
+        var reassigned = b.filter(function (x) { return x.status === "reassigned"; }).length;
+        var escalated = b.filter(function (x) { return x.status === "escalated"; }).length;
+        var who = STATE.user && (STATE.user.name || STATE.user.email) || "";
+
+        var html = '<div class="wrap"><div class="top"><div class="brand"><div class="logo">YM</div><div><div class="eyebrow">YesMadam Operations</div><h1>Self-Healing Operations</h1></div></div>' +
+          '<div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap"><span class="pill"><span class="pip"></span>live' + (who ? " · " + esc(who) : "") + '</span>' +
+          '<button class="btn" id="reset">↺ Reset demo</button></div></div>';
+
+        html += '<div class="stats">' +
+          stat(b.length, "Bookings today", "") +
+          stat(reassigned, "Auto-recovered", "brand") +
+          stat(escalated, "Escalated", escalated ? "alert" : "") +
+          stat(pending.length, "Pending approvals", pending.length ? "alert" : "") +
+          stat(money(issuedSum), "Comp issued", "") + "</div>";
+
+        html += '<div class="cols"><div>';
+        // Bookings board
+        html += '<div class="panel"><h2>Bookings board <span class="count">' + b.length + '</span></h2>' +
+          '<p class="cap">Simulate a last-minute cancellation — the agent recovers the slot automatically.</p>';
+        b.sort(function (x, y) { return String(x.scheduled_at).localeCompare(String(y.scheduled_at)); });
+        html += b.map(bookingRow).join("") || '<div class="empty">No bookings.</div>';
+        html += "</div></div>";
+
+        // Right column
+        html += "<div>";
+        html += '<div class="panel"><h2>⚠ Approval queue <span class="count">' + pending.length + '</span></h2>' +
+          '<p class="cap">Money decisions need a human. Approve or reject the agent\'s recommendation.</p>';
+        html += pending.map(apprCard).join("") || '<div class="empty">Nothing waiting. The floor is healthy. ✓</div>';
+        html += "</div>";
+
+        html += '<div class="panel"><h2>Recovery timeline</h2><p class="cap">Every action the agent and operators took.</p><div class="tl">';
+        var recent = logs.slice().sort(function (x, y) { return String(y.created_at).localeCompare(String(x.created_at)); }).slice(0, 14);
+        html += recent.map(function (l) {
+          return '<div class="ev"><div class="e">' + esc((l.event || "").replace(/_/g, " ")) + '</div><div class="d">' + esc(l.detail || "") + '</div><div class="t">' + esc(ago(l.created_at)) + " · " + esc(l.actor) + "</div></div>";
+        }).join("") || '<div class="empty">No activity yet.</div>';
+        html += "</div></div></div></div></div>";
+
+        $("app").innerHTML = html;
+        wire();
+      }
+
+      function stat(n, l, cls) { return '<div class="stat ' + (cls || "") + '"><div class="n">' + esc(n) + '</div><div class="l">' + esc(l) + "</div></div>"; }
+
+      function bookingRow(x) {
+        var canRecover = x.status === "scheduled" || x.status === "at_risk";
+        var assigned = x.status === "reassigned" ? " · now: <b>" + esc(proName(x.assigned_pro_id)) + "</b>" : "";
+        var time = x.scheduled_at ? new Date(x.scheduled_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
+        return '<div class="bk"><div class="info"><div class="who">' + esc(x.customer_name) + '</div>' +
+          '<div class="meta">' + esc(x.service) + " · " + esc(x.area) + " · " + esc(time) + assigned + "</div></div>" +
+          '<span class="badge b-' + esc(x.status) + '">' + esc((x.status || "").replace(/_/g, " ")) + "</span>" +
+          (canRecover ? '<button class="btn brand" data-recover="' + esc(x.id) + '">Cancel → recover</button>' : "") + "</div>";
+      }
+
+      function apprCard(c) {
+        var booking = bk(c.booking_id);
+        var name = booking ? booking.customer_name : "Booking";
+        return '<div class="appr"><div class="h"><div><b>' + esc(name) + '</b> · ' + esc(c.type) + '</div><div class="amt">' + money(c.amount) + "</div></div>" +
+          '<div class="rsn">' + esc(c.reason || "") + "</div>" +
+          '<div class="acts"><button class="btn good" data-approve="' + esc(c.id) + '">✓ Approve</button>' +
+          '<button class="btn bad" data-reject="' + esc(c.id) + '">✕ Reject</button></div></div>';
+      }
+
+      function wire() {
+        $("reset").onclick = function () { act(this, function () { return client.functions.call("reset_demo", { confirm: true }); }, "Demo reset"); };
+        document.querySelectorAll("[data-recover]").forEach(function (btn) {
+          btn.onclick = function () { act(btn, function () { return client.functions.call("run_recovery", { booking_id: btn.getAttribute("data-recover") }); }, "Recovery run"); };
+        });
+        document.querySelectorAll("[data-approve]").forEach(function (btn) {
+          btn.onclick = function () { act(btn, function () { return client.functions.call("decide_comp", { comp_id: btn.getAttribute("data-approve"), approved: true }); }, "Approved"); };
+        });
+        document.querySelectorAll("[data-reject]").forEach(function (btn) {
+          btn.onclick = function () { act(btn, function () { return client.functions.call("decide_comp", { comp_id: btn.getAttribute("data-reject"), approved: false }); }, "Rejected"); };
+        });
+      }
+
+      async function act(btn, fn, okMsg) {
+        var label = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
+        try { await fn(); toast(okMsg); await refresh(); }
+        catch (e) { btn.disabled = false; btn.innerHTML = label; toast("Error: " + ((e && e.message) || "failed")); }
+      }
+    </script>
+  </body>
+</html>

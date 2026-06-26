@@ -1,0 +1,13 @@
+{
+  "name": "decide_comp",
+  "description": "Operator approves or rejects a pending compensation (the human gate): flip comp_ledger to issued/rejected and log the decision.",
+  "type": "API",
+  "visibility": "POD",
+  "code": { "$file": "code.py" },
+  "permissions": { "grants": [
+    { "resource_type": "datastore_table", "resource_name": "comp_ledger",
+      "permission_ids": ["datastore.table.read", "datastore.record.read", "datastore.record.write"] },
+    { "resource_type": "datastore_table", "resource_name": "recovery_log",
+      "permission_ids": ["datastore.table.read", "datastore.record.write"] }
+  ] }
+}
