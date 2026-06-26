@@ -1,0 +1,13 @@
+{
+  "name": "match_pro",
+  "description": "Rank available professionals for an at-risk booking by skill, proximity, rating, and spare capacity. Returns the best replacement (or matched=false).",
+  "type": "API",
+  "visibility": "POD",
+  "code": { "$file": "code.py" },
+  "permissions": { "grants": [
+    { "resource_type": "datastore_table", "resource_name": "bookings",
+      "permission_ids": ["datastore.table.read", "datastore.record.read"] },
+    { "resource_type": "datastore_table", "resource_name": "beauticians",
+      "permission_ids": ["datastore.table.read", "datastore.record.read"] }
+  ] }
+}

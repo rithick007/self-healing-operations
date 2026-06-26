@@ -1,0 +1,11 @@
+{
+  "name": "recommend_comp",
+  "description": "Recommend a goodwill comp (discount/refund/none) for a disrupted booking per the documented comp policy. Recommends only; a human approves.",
+  "type": "API",
+  "visibility": "POD",
+  "code": { "$file": "code.py" },
+  "permissions": { "grants": [
+    { "resource_type": "datastore_table", "resource_name": "bookings",
+      "permission_ids": ["datastore.table.read", "datastore.record.read"] }
+  ] }
+}
