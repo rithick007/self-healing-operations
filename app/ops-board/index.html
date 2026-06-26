@@ -203,15 +203,15 @@
       }
 
       function wire() {
-        $("reset").onclick = function () { act(this, function () { return client.functions.call("reset_demo", { confirm: true }); }, "Demo reset"); };
+        $("reset").onclick = function () { act(this, function () { return client.functions.run("reset_demo", { input: { confirm: true } }); }, "Demo reset"); };
         document.querySelectorAll("[data-recover]").forEach(function (btn) {
-          btn.onclick = function () { act(btn, function () { return client.functions.call("run_recovery", { booking_id: btn.getAttribute("data-recover") }); }, "Recovery run"); };
+          btn.onclick = function () { act(btn, function () { return client.functions.run("run_recovery", { input: { booking_id: btn.getAttribute("data-recover") } }); }, "Recovery run"); };
         });
         document.querySelectorAll("[data-approve]").forEach(function (btn) {
-          btn.onclick = function () { act(btn, function () { return client.functions.call("decide_comp", { comp_id: btn.getAttribute("data-approve"), approved: true }); }, "Approved"); };
+          btn.onclick = function () { act(btn, function () { return client.functions.run("decide_comp", { input: { comp_id: btn.getAttribute("data-approve"), approved: true } }); }, "Approved"); };
         });
         document.querySelectorAll("[data-reject]").forEach(function (btn) {
-          btn.onclick = function () { act(btn, function () { return client.functions.call("decide_comp", { comp_id: btn.getAttribute("data-reject"), approved: false }); }, "Rejected"); };
+          btn.onclick = function () { act(btn, function () { return client.functions.run("decide_comp", { input: { comp_id: btn.getAttribute("data-reject"), approved: false } }); }, "Rejected"); };
         });
       }
 
