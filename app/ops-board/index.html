@@ -322,15 +322,19 @@
         { customer_name: "Pooja Hegde", customer_phone: "+919900000007", service: "Facial at Home", skill_required: "Facial", city: "Bangalore", area: "Jayanagar", lat: 12.9250, lng: 77.5938, scheduled_at: "2026-06-26T15:30:00Z", duration_min: 60, price: 1200, status: "scheduled", notes: "" },
         { customer_name: "Megha Pillai", customer_phone: "+919900000008", service: "Haircut at Home", skill_required: "Haircut", city: "Bangalore", area: "Whitefield", lat: 12.9698, lng: 77.7500, scheduled_at: "2026-06-26T17:30:00Z", duration_min: 45, price: 800, status: "scheduled", notes: "" }
       ];
-      async function truncate(table) {
-        var rows = listOf(await client.records.list(table, { limit: 200 }));
-        await apiDelete(table, rows.map(function (r) { return r.id; }));
-      }
       async function resetDemo() {
-        await truncate("recovery_log"); await truncate("comp_ledger");
-        await truncate("bookings"); await truncate("beauticians");
-        await apiPost("/datastore/tables/beauticians/records/bulk/create", { records: SEED_PROS });
-        await apiPost("/datastore/tables/bookings/records/bulk/create", { records: SEED_BOOKINGS });
+        // Parallelized so it finishes in ~5s, not ~20s. Delete children before
+        // parents (FK-safe): logs/comps -> bookings -> beauticians, then reseed.
+        var tables = ["recovery_log", "comp_ledger", "bookings", "beauticians"];
+        var lists = await Promise.all(tables.map(function (t) { return client.records.list(t, { limit: 200 }); }));
+        var ids = lists.map(function (r) { return listOf(r).map(function (x) { return x.id; }); });
+        await Promise.all([apiDelete("recovery_log", ids[0]), apiDelete("comp_ledger", ids[1])]);
+        await apiDelete("bookings", ids[2]);
+        await apiDelete("beauticians", ids[3]);
+        await Promise.all([
+          apiPost("/datastore/tables/beauticians/records/bulk/create", { records: SEED_PROS }),
+          apiPost("/datastore/tables/bookings/records/bulk/create", { records: SEED_BOOKINGS }),
+        ]);
       }
       function rlog(id, event, actor, detail) { return rcreate("recovery_log", { booking_id: id, event: event, actor: actor, detail: detail }); }
 
