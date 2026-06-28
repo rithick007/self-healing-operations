@@ -106,9 +106,9 @@
         s.onerror = function () { fatal("Couldn't load the Lemma SDK from " + s.src); };
         s.onload = function () {
           var u = document.createElement("script");      // opt-in UI bundle: registers <lemma-agent-thread>
-          u.src = base + "/public/sdk/lemma-ui.js";
-          u.onload = boot; u.onerror = boot;             // chat is a bonus; boot regardless
+          u.src = base + "/public/sdk/lemma-ui.js";      // loads in parallel; mountChat() waits via whenDefined
           document.head.appendChild(u);
+          boot();                                        // dashboard never blocks on the chat bundle
         };
         document.head.appendChild(s);
       })();
