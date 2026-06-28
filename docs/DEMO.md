@@ -8,8 +8,11 @@ Pod: `ops-recovery` · Org: Rithick's Space · App: https://ops-board.apps.lemma
 $env:Path="C:\Users\rithi\.local\bin;$env:Path"
 $env:PYTHONPATH="C:\Users\rithi\lemma-hackathon\scripts\winshim"
 $env:PYTHONIOENCODING="utf-8"
-$env:LEMMA_ORG_ID="019eff82-9b37-705e-a2d2-09aff0f58c16"
-$pod="019f020d-9437-7768-a76e-bff2052e9b44"
+# Fill these from your own workspace:
+#   org id  ->  lemma orgs list --json
+#   pod id  ->  lemma pod list --json   (pod name: ops-recovery)
+$env:LEMMA_ORG_ID="<YOUR_ORG_ID>"
+$pod="<YOUR_POD_ID>"
 ```
 
 ## 1. Reset to a clean state (before any demo)

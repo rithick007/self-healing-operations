@@ -119,5 +119,5 @@ Tables ✓ · Files/playbook ✓ · Functions ✓ · Agent ✓ · Workflow w/ DE
 
 - [ ] Exact project/import structure (`lemma import` vs `lemma <resource> apply`) and folder layout.
 - [ ] Approval primitive semantics (how a workflow pauses for human sign-off).
-- [ ] How the hosted cloud handles the Anthropic API key (per-org/pod config vs `lemma-stack`).
+- [x] Hosted cloud runs models out of the box — no model provider key needed.
 - [ ] Telegram surface setup via `lemma connectors` (CUSTOM credential mode).
