@@ -77,25 +77,23 @@ rather than issuing them.
 
 ---
 
-## 5. Optional — live Telegram delivery
+## 5. Telegram — run the whole operation from chat
 
-To have the ops-agent answer on Telegram (and demo real-device messaging):
+The ops-agent is wired to Telegram via **Lemma's built-in bot** (no BotFather token
+needed). The surface is created with:
 
-1. In Telegram, message **@BotFather** → `/newbot` → get the bot **token**.
-2. Connect the Telegram account (interactive, paste the token when prompted):
-   ```powershell
-   lemma --pod $pod connectors   # follow the Telegram connect flow; note the account id
-   ```
-3. Create the surface (file `surfaces/telegram/telegram.json`):
-   ```json
-   {
-     "name": "telegram",
-     "platform": "TELEGRAM",
-     "default_agent_name": "ops-agent",
-     "credential_mode": "CUSTOM",
-     "account_id": "<connector-account-uuid>",
-     "is_enabled": true
-   }
-   ```
-4. `lemma --pod $pod pods import .` then message your bot:
-   *"What's escalated right now?"*
+```powershell
+'{ "mode": "DM" }' | Out-File -Encoding ascii tg.json
+lemma --pod $pod surface upsert TELEGRAM --agent ops-agent --credential-mode SYSTEM --enabled -f tg.json
+lemma --pod $pod surface setup TELEGRAM     # shows status: ACTIVE / Ready: yes
+```
+
+To link your own Telegram and chat with it, open the **Lemma dashboard** for this
+pod → **Surfaces → Telegram → Open in Telegram**, then message the bot, e.g.:
+
+- *"What's escalated right now?"*
+- *"Pooja Hegde's pro cancelled — recover it."*
+- *"How much comp have we issued today?"*
+
+For a **customer-managed bot** instead (your own @BotFather token), connect it as a
+connector account and pass `--credential-mode CUSTOM --account <account-id>`.
