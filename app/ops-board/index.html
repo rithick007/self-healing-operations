@@ -237,9 +237,24 @@
         });
         return best ? { pro: best, eta: eta } : null;
       }
-      // The browser SDK create/update are BULK: create(table,[obj]); update(table,[{id,...}]).
-      function rcreate(t, obj) { return client.records.create(t, [obj]); }
-      function rupdate(t, id, fields) { return client.records.update(t, [Object.assign({ id: id }, fields)]); }
+      // The SDK's records.update sends the bulk endpoint mode=undefined → server 422
+      // ("mode must be USER/ADMIN") with no passthrough, so writes go through a raw
+      // authenticated POST (same lemma_token bearer the SDK uses) with mode=USER.
+      function apiPost(pathQ, body) {
+        var cfg = window.__LEMMA_CONFIG__ || {};
+        var base = (cfg.apiUrl || location.origin).replace(/\/$/, "");
+        var token = null; try { token = localStorage.getItem("lemma_token"); } catch (e) {}
+        var headers = { "Content-Type": "application/json" };
+        if (token) headers["Authorization"] = "Bearer " + token;
+        return fetch(base + "/pods/" + cfg.podId + pathQ, {
+          method: "POST", headers: headers, credentials: "include", body: JSON.stringify(body)
+        }).then(function (r) {
+          if (!r.ok) return r.text().then(function (t) { throw new Error("HTTP " + r.status + " " + t.slice(0, 100)); });
+          return r.json().catch(function () { return {}; });
+        });
+      }
+      function rcreate(t, obj) { return apiPost("/datastore/tables/" + t + "/records/bulk/create", { records: [obj] }); }
+      function rupdate(t, id, fields) { return apiPost("/datastore/tables/" + t + "/records/bulk/update?mode=USER", { records: [Object.assign({ id: id }, fields)] }); }
       function rlog(id, event, actor, detail) { return rcreate("recovery_log", { booking_id: id, event: event, actor: actor, detail: detail }); }
 
       async function recoverBooking(b) {
