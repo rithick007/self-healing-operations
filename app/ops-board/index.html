@@ -105,7 +105,7 @@
       function fatal(m) { $("app").innerHTML = '<div class="center"><div><h1>⚠ Error</h1><p>' + esc(m) + "</p></div></div>"; }
       function toast(m) { var t = $("toast"); t.textContent = m; t.classList.add("show"); clearTimeout(t._x); t._x = setTimeout(function () { t.classList.remove("show"); }, 2400); }
       function ago(iso) { if (!iso) return ""; var s = (Date.now() - new Date(iso).getTime()) / 1000; if (s < 60) return "just now"; if (s < 3600) return Math.floor(s / 60) + "m ago"; if (s < 86400) return Math.floor(s / 3600) + "h ago"; return Math.floor(s / 86400) + "d ago"; }
-      function call(name, input) { return client.functions.run(name, { input: input }); }
+      function call(name, input) { return client.functions.runs.create(name, { input: input }); }
 
       async function boot() {
         try {
