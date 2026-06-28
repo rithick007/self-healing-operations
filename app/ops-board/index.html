@@ -217,12 +217,74 @@
           '<div class="acts"><button class="btn good sm" data-approve="' + esc(c.id) + '">✓ Approve</button><button class="btn bad sm" data-reject="' + esc(c.id) + '">✕ Reject</button></div></div>';
       }
 
+      // --- Recovery runs client-side over the fast datastore API (~2s),
+      // --- not the slow function runtime. Same logic as the run_recovery fn.
+      function haversine(a, b, c, d) {
+        if ([a, b, c, d].some(function (v) { return v == null; })) return 8;
+        var r = 6371, dl = (c - a) * Math.PI / 180, dn = (d - b) * Math.PI / 180;
+        var x = Math.sin(dl / 2) ** 2 + Math.cos(a * Math.PI / 180) * Math.cos(c * Math.PI / 180) * Math.sin(dn / 2) ** 2;
+        return Math.round(2 * r * Math.asin(Math.sqrt(x)) * 100) / 100;
+      }
+      function bestPro(b) {
+        var best = null, bs = -1, eta = 0;
+        (STATE.pros || []).forEach(function (p) {
+          if (p.status !== "active" || p.is_available !== true) return;
+          if (b.skill_required && (p.skills || []).indexOf(b.skill_required) < 0) return;
+          if (p.max_jobs_per_day && (p.jobs_today || 0) >= p.max_jobs_per_day) return;
+          var dist = haversine(b.lat, b.lng, p.lat, p.lng);
+          var score = 1 / (1 + dist) + (p.rating || 0) / 5 * 0.6;
+          if (score > bs) { best = p; bs = score; eta = Math.round(15 + 3 * dist); }
+        });
+        return best ? { pro: best, eta: eta } : null;
+      }
+      // The browser SDK create/update are BULK: create(table,[obj]); update(table,[{id,...}]).
+      function rcreate(t, obj) { return client.records.create(t, [obj]); }
+      function rupdate(t, id, fields) { return client.records.update(t, [Object.assign({ id: id }, fields)]); }
+      function rlog(id, event, actor, detail) { return rcreate("recovery_log", { booking_id: id, event: event, actor: actor, detail: detail }); }
+
+      async function recoverBooking(b) {
+        var m = bestPro(b);
+        if (!m) {
+          await rupdate("bookings", b.id, { status: "escalated" });
+          await Promise.all([
+            rcreate("comp_ledger", { booking_id: b.id, type: "refund", amount: b.price || 0, reason: "No available " + (b.skill_required || "") + " professional.", recommended_by: "app", status: "pending" }),
+            rlog(b.id, "escalated", "agent", "No replacement found. Full refund queued for approval."),
+          ]);
+          return;
+        }
+        var pro = m.pro, eta = m.eta, price = b.price || 0;
+        var msg = "Hi " + b.customer_name + ", your " + b.service + " is confirmed. Your original professional became unavailable, so we have arranged " + pro.name + " to arrive in about " + eta + " minutes. — YesMadam";
+        var comp = null;
+        if (eta > 15) { var pct = eta <= 30 ? 0.10 : 0.20; comp = { amount: Math.round(price * pct), reason: "~" + eta + "-min delay — " + (pct * 100) + "% goodwill discount." }; }
+        var ops = [
+          rupdate("bookings", b.id, { assigned_pro_id: pro.id, status: "reassigned" }),
+          rupdate("beauticians", pro.id, { jobs_today: (pro.jobs_today || 0) + 1 }),
+          rlog(b.id, "reassigned", "agent", "Reassigned to " + pro.name + " (ETA ~" + eta + " min)."),
+          rlog(b.id, "customer_notified", "agent", msg),
+        ];
+        if (comp) {
+          ops.push(rcreate("comp_ledger", { booking_id: b.id, type: "discount", amount: comp.amount, reason: comp.reason, recommended_by: "app", status: "pending" }));
+          ops.push(rlog(b.id, "comp_recommended", "agent", comp.reason));
+        } else {
+          ops.push(rlog(b.id, "resolved", "agent", "Recovered within grace window — no comp needed."));
+        }
+        await Promise.all(ops);
+      }
+
+      async function decideComp(compId, approved) {
+        var c = (STATE.comps || []).find(function (x) { return x.id === compId; }) || {};
+        await Promise.all([
+          rupdate("comp_ledger", compId, { status: approved ? "issued" : "rejected", decided_by: "operator" }),
+          rlog(c.booking_id, approved ? "comp_approved" : "comp_rejected", "human", (c.type || "comp") + " of " + Math.round(c.amount || 0) + " INR " + (approved ? "issued" : "rejected") + " by operator."),
+        ]);
+      }
+
       function wire() {
-        $("reset").onclick = function () { act(this, function () { return call("reset_demo", { confirm: true }); }, "Demo reset"); };
+        $("reset").onclick = function () { act(this, function () { return call("reset_demo", { confirm: true }); }, "Demo reset (takes a few seconds)"); };
         $("simday").onclick = simulateDay;
-        document.querySelectorAll("[data-recover]").forEach(function (btn) { btn.onclick = function () { act(btn, function () { return call("run_recovery", { booking_id: btn.getAttribute("data-recover") }); }, "Recovered"); }; });
-        document.querySelectorAll("[data-approve]").forEach(function (btn) { btn.onclick = function () { act(btn, function () { return call("decide_comp", { comp_id: btn.getAttribute("data-approve"), approved: true }); }, "Approved"); }; });
-        document.querySelectorAll("[data-reject]").forEach(function (btn) { btn.onclick = function () { act(btn, function () { return call("decide_comp", { comp_id: btn.getAttribute("data-reject"), approved: false }); }, "Rejected"); }; });
+        document.querySelectorAll("[data-recover]").forEach(function (btn) { btn.onclick = function () { act(btn, function () { return recoverBooking(bk(btn.getAttribute("data-recover"))); }, "Recovered"); }; });
+        document.querySelectorAll("[data-approve]").forEach(function (btn) { btn.onclick = function () { act(btn, function () { return decideComp(btn.getAttribute("data-approve"), true); }, "Approved"); }; });
+        document.querySelectorAll("[data-reject]").forEach(function (btn) { btn.onclick = function () { act(btn, function () { return decideComp(btn.getAttribute("data-reject"), false); }, "Rejected"); }; });
       }
 
       async function act(btn, fn, okMsg) {
@@ -231,14 +293,15 @@
         catch (e) { btn.disabled = false; btn.innerHTML = label; toast("Error: " + ((e && e.message) || "failed")); }
       }
 
-      // The wow: handle a whole day of cancellations in one click.
+      // The wow: handle a whole day of cancellations in one click (client-side, fast).
       async function simulateDay() {
-        var btn = $("simday"); var open = (STATE.bookings || []).filter(function (x) { return x.status === "scheduled" || x.status === "at_risk"; });
+        var btn = $("simday");
+        var open = (STATE.bookings || []).filter(function (x) { return x.status === "scheduled" || x.status === "at_risk"; });
         if (!open.length) { toast("No open bookings — reset first."); return; }
         btn.disabled = true; var done = 0;
         for (var i = 0; i < open.length; i++) {
           btn.innerHTML = "Recovering… " + (i + 1) + "/" + open.length;
-          try { await call("run_recovery", { booking_id: open[i].id }); done++; } catch (e) {}
+          try { await recoverBooking(open[i]); done++; } catch (e) {}
         }
         btn.innerHTML = "▶ Simulate the full day"; btn.disabled = false;
         toast("Handled " + done + " bookings in seconds.");
