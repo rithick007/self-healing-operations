@@ -12,3 +12,8 @@ Thumbs.db
 
 # Lemma local artifacts
 *.log
+
+# Local submission materials — kept on disk, not part of the reviewed codebase
+docs/PITCH.md
+docs/SUBMISSION.md
+docs/submission-answers.md
