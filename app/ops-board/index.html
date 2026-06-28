@@ -82,6 +82,16 @@
       .toast.show { opacity: 1; }
       .spin { display: inline-block; width: 13px; height: 13px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: rot .7s linear infinite; vertical-align: -2px; }
       @keyframes rot { to { transform: rotate(360deg); } }
+      /* Live agent chat widget (Telegram-styled) */
+      #chatdock { position: fixed; right: 18px; bottom: 18px; z-index: 60; }
+      #chattoggle { display: inline-flex; align-items: center; gap: .45rem; background: #229ED9; color: #fff; border: none; border-radius: 999px; padding: .7rem 1.15rem; font-weight: 700; font-size: .88rem; box-shadow: 0 8px 24px rgba(34,158,217,.42); cursor: pointer; }
+      #chattoggle:hover { filter: brightness(1.05); }
+      #chatpanel { display: none; flex-direction: column; width: 372px; max-width: 92vw; height: 540px; max-height: 78vh; background: #fff; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; box-shadow: 0 26px 64px rgba(0,0,0,.24); }
+      .chathead { background: #229ED9; color: #fff; padding: .65rem .9rem; font-weight: 700; font-size: .9rem; display: flex; align-items: center; gap: .4rem; }
+      .chathead em { font-style: normal; font-weight: 500; opacity: .85; font-size: .7rem; }
+      .chathead .dot { width: 8px; height: 8px; border-radius: 50%; background: #8affb0; box-shadow: 0 0 0 0 rgba(138,255,176,.6); animation: pulse 2.2s infinite; }
+      .chathead #chatclose { margin-left: auto; background: rgba(255,255,255,.22); border: none; color: #fff; border-radius: 6px; width: 22px; height: 22px; cursor: pointer; line-height: 1; }
+      lemma-agent-thread.thread { flex: 1; min-height: 0; display: block; --lemma-accent: #229ED9; --lemma-radius: 12px; --lemma-bg: #eef6fb; }
     </style>
   </head>
   <body>
@@ -93,7 +103,13 @@
         var base = (cfg.apiUrl || window.location.origin).replace(/\/$/, "");
         var s = document.createElement("script");
         s.src = base + "/public/sdk/lemma-client.js";
-        s.onload = boot; s.onerror = function () { fatal("Couldn't load the Lemma SDK from " + s.src); };
+        s.onerror = function () { fatal("Couldn't load the Lemma SDK from " + s.src); };
+        s.onload = function () {
+          var u = document.createElement("script");      // opt-in UI bundle: registers <lemma-agent-thread>
+          u.src = base + "/public/sdk/lemma-ui.js";
+          u.onload = boot; u.onerror = boot;             // chat is a bonus; boot regardless
+          document.head.appendChild(u);
+        };
         document.head.appendChild(s);
       })();
 
@@ -113,8 +129,34 @@
           var auth = await client.initialize();
           if (auth.status !== "authenticated") return signIn();
           STATE.user = auth.user;
+          mountChat();
           await refresh();
         } catch (e) { fatal((e && e.message) || "Something went wrong."); }
+      }
+
+      // Floating live chat with ops-agent (the same agent that answers on Telegram).
+      // Lives on <body>, outside #app, so the dashboard's re-renders never reset it.
+      function mountChat() {
+        if (document.getElementById("chatdock") || !window.customElements || !customElements.get("lemma-agent-thread")) {
+          if (!document.getElementById("chatdock") && window.customElements) {
+            // UI bundle may register slightly late — retry briefly.
+            return void customElements.whenDefined("lemma-agent-thread").then(mountChat);
+          }
+          return;
+        }
+        var d = document.createElement("div");
+        d.id = "chatdock";
+        d.innerHTML =
+          '<div id="chatpanel">' +
+            '<div class="chathead"><span class="dot"></span> Ops Agent <em>· live · same agent on Telegram</em>' +
+            '<button id="chatclose" title="Close">✕</button></div>' +
+            '<lemma-agent-thread agent="ops-agent" class="thread"></lemma-agent-thread>' +
+          '</div>' +
+          '<button id="chattoggle">💬 Chat with the agent</button>';
+        document.body.appendChild(d);
+        var panel = document.getElementById("chatpanel"), toggle = document.getElementById("chattoggle");
+        toggle.onclick = function () { panel.style.display = "flex"; toggle.style.display = "none"; };
+        document.getElementById("chatclose").onclick = function () { panel.style.display = "none"; toggle.style.display = "inline-flex"; };
       }
       function signIn() {
         $("app").innerHTML = '<div class="center"><div><div class="eyebrow">YesMadam Ops</div><h1>Self-Healing Operations</h1><p style="color:var(--muted)">Sign in to open the command center.</p><button class="btn good" id="si" style="margin-top:1rem">Sign in</button></div></div>';
